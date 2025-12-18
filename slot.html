@@ -1,0 +1,1151 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>1〜777 スロット</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --accent:#60a5fa;
+      --good:#34d399;
+      --rare:#a78bfa;
+      --ultra:#f59e0b;
+      --danger:#fb7185;
+      --shadow: 0 20px 60px rgba(0,0,0,.35);
+      --radius:18px;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans JP", sans-serif;
+      background: radial-gradient(1200px 600px at 20% 0%, rgba(96,165,250,.15), transparent 60%),
+                  radial-gradient(900px 500px at 80% 20%, rgba(167,139,250,.12), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+
+    .wrap{ width:min(980px, 100%); }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+      transform: translateZ(0);
+    }
+
+    .header{
+      padding:18px 22px 14px;
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:12px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .title{
+      font-size:16px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color:rgba(229,231,235,.9);
+    }
+    .sub{
+      margin-top:6px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.5;
+    }
+
+    .tier{
+      font-size:12px;
+      color:rgba(229,231,235,.9);
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(17,24,39,.45);
+      white-space:nowrap;
+      transition: transform .15s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+    }
+    .tier.pop{ transform: translateY(-1px) scale(1.03); }
+
+    .stage{
+      padding: 16px 22px 22px;
+      display:grid;
+      gap:14px;
+      grid-template-columns: 1.15fr .85fr;
+    }
+    @media (max-width: 920px){
+      .stage{ grid-template-columns: 1fr; }
+    }
+
+    .slotBox{
+      border-radius: var(--radius);
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(17,24,39,.55);
+      padding:18px;
+      position:relative;
+      overflow:hidden;
+      transition: box-shadow .25s ease, border-color .25s ease, transform .18s ease;
+    }
+
+    .reel{
+      position:absolute;
+      inset:-20px 0 auto 0;
+      height:140px;
+      opacity:.16;
+      pointer-events:none;
+      filter: blur(.2px);
+      mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
+    }
+    .reelTrack{
+      position:absolute;
+      left:0; right:0;
+      top:0;
+      font-weight:800;
+      letter-spacing:.18em;
+      font-size:22px;
+      line-height:1.2;
+      text-align:center;
+      color: rgba(229,231,235,.85);
+      transform: translateY(0);
+    }
+    .reel.spin .reelTrack{ animation: reelMove 0.22s linear infinite; }
+    @keyframes reelMove{ from{ transform: translateY(0); } to{ transform: translateY(34px); } }
+
+    .number{
+      font-size:64px;
+      font-weight:800;
+      letter-spacing:.02em;
+      text-align:center;
+      line-height:1.0;
+      user-select:none;
+      text-shadow: 0 12px 40px rgba(0,0,0,.45);
+    }
+
+    .message{
+      margin-top:10px;
+      text-align:center;
+      color:rgba(229,231,235,.9);
+      min-height: 2.4em;
+      line-height:1.4;
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:center;
+      margin-top: 12px;
+    }
+
+    button{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      border-radius: 14px;
+      padding:12px 14px;
+      font-weight:900;
+      color: var(--text);
+      background: rgba(96,165,250,.16);
+      border: 1px solid rgba(96,165,250,.32);
+      transition: transform .08s ease, filter .15s ease;
+      min-width: 180px;
+    }
+    button:hover{ filter: brightness(1.08); }
+    button:active{ transform: translateY(1px) scale(.99); }
+    button:disabled{ opacity:.55; cursor:not-allowed; }
+
+    .panel{
+      border-radius: var(--radius);
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(17,24,39,.38);
+      padding:16px;
+      display:grid;
+      gap:12px;
+      align-content:start;
+      overflow:hidden;
+    }
+    .statRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+    }
+    .statLabel{ color: rgba(156,163,175,.95); font-size:12px; letter-spacing:.08em; text-transform:uppercase; }
+    .statValue{ font-weight:900; }
+    .statSmall{ color: rgba(156,163,175,.9); font-size:12px; margin-top:6px; line-height:1.4; }
+
+    .sectionTitle{
+      margin-top: 6px;
+      font-size:12px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color: rgba(229,231,235,.85);
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:baseline;
+    }
+    .sectionHint{
+      font-size:11px;
+      color: rgba(156,163,175,.85);
+      letter-spacing:0;
+      text-transform:none;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      font-size:12px;
+      font-weight:900;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      color: rgba(229,231,235,.95);
+      user-select:none;
+      max-width: 100%;
+    }
+    .chipNum{ letter-spacing:.08em; }
+
+    .chip.secret{ border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.12); }
+    .chip.ultra{ border-color: rgba(245,158,11,.20); }
+    .chip.rare{ border-color: rgba(167,139,250,.22); }
+    .chip.super{ border-color: rgba(52,211,153,.22); }
+
+    .pillBtn{
+      border:none;
+      cursor:pointer;
+      font-weight:900;
+      font-size:11px;
+      padding:4px 8px;
+      border-radius:999px;
+      color: rgba(229,231,235,.95);
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      transition: transform .08s ease, filter .15s ease;
+      min-width: unset;
+    }
+    .pillBtn:hover{ filter: brightness(1.12); }
+    .pillBtn:active{ transform: translateY(1px) scale(.99); }
+    .pillBtn:disabled{ opacity:.55; cursor:not-allowed; }
+    .pillBtn.exchange{
+      background: rgba(52,211,153,.10);
+      border-color: rgba(52,211,153,.18);
+    }
+
+    .log{
+      max-height: 260px;
+      overflow:auto;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.12);
+    }
+    .logItem{
+      padding:10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      font-size:12px;
+      color: rgba(229,231,235,.92);
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .logItem:last-child{ border-bottom:none; }
+    .logMeta{ color: rgba(156,163,175,.9); font-size:11px; white-space:nowrap; }
+    .logMain b{ font-weight:900; }
+
+    /* ===== 演出 ===== */
+    .flash::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background: radial-gradient(600px 240px at 50% 20%, rgba(255,255,255,.25), transparent 60%),
+                  linear-gradient(180deg, rgba(255,255,255,.20), transparent);
+      animation: flash .65s ease;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+    @keyframes flash{ 0%{opacity:0} 20%{opacity:1} 100%{opacity:0} }
+
+    .shake{ animation: shake .35s ease; }
+    @keyframes shake{
+      0%{transform:translateX(0)}
+      20%{transform:translateX(-6px)}
+      40%{transform:translateX(6px)}
+      60%{transform:translateX(-4px)}
+      80%{transform:translateX(4px)}
+      100%{transform:translateX(0)}
+    }
+
+    .popBox{ animation: popBox .22s ease; }
+    @keyframes popBox{
+      0%{ transform: scale(1); }
+      60%{ transform: scale(1.03); }
+      100%{ transform: scale(1); }
+    }
+
+    .glow-low{ box-shadow: 0 0 0 rgba(0,0,0,0); }
+    .glow-normal{ box-shadow: 0 0 0 rgba(0,0,0,0); }
+    .glow-rare{ box-shadow: 0 0 0 1px rgba(167,139,250,.25), 0 0 60px rgba(167,139,250,.20); }
+    .glow-super{ box-shadow: 0 0 0 1px rgba(52,211,153,.22), 0 0 60px rgba(52,211,153,.18); }
+    .glow-ultra{ box-shadow: 0 0 0 1px rgba(245,158,11,.25), 0 0 80px rgba(245,158,11,.20); }
+
+    .secret{
+      background: radial-gradient(900px 360px at 50% 0%, rgba(245,158,11,.18), transparent 60%),
+                  radial-gradient(700px 300px at 80% 40%, rgba(167,139,250,.14), transparent 60%),
+                  rgba(17,24,39,.65);
+      border-color: rgba(245,158,11,.28);
+      box-shadow: 0 0 0 1px rgba(245,158,11,.25), 0 0 120px rgba(245,158,11,.22);
+    }
+    .secretText{
+      letter-spacing:.2em;
+      text-transform:uppercase;
+      color: rgba(245,158,11,.95);
+      font-weight:900;
+      text-align:center;
+      margin-top:10px;
+      animation: rise 1.2s ease;
+    }
+    @keyframes rise{ 0%{opacity:0; transform:translateY(8px)} 100%{opacity:1; transform:translateY(0)} }
+
+    .confetti{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      overflow:hidden;
+    }
+    .confetti span{
+      position:absolute;
+      top:-10px;
+      width:8px; height:14px;
+      opacity:.9;
+      border-radius:2px;
+      animation: fall 1.4s linear forwards;
+      filter: blur(.1px);
+    }
+    @keyframes fall{ to{ transform: translateY(420px) rotate(220deg); opacity:0; } }
+
+    .note{
+      font-size:12px;
+      color: rgba(156,163,175,.9);
+      line-height:1.5;
+      margin-top: 6px;
+      text-align:center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card" id="card">
+      <div class="header">
+        <div>
+          <div class="title">NUMBER SLOT 1–777</div>
+          <div class="sub">
+            1回 <b><span id="costText">500</span>G</b>。毎日 <b>00:00（JST）</b> 更新で <b>1000G</b>。
+          </div>
+        </div>
+        <div class="tier" id="tierBadge">READY</div>
+      </div>
+
+      <div class="stage">
+        <!-- LEFT -->
+        <div>
+          <div class="slotBox glow-normal" id="slotBox">
+            <div class="reel" id="reel">
+              <div class="reelTrack" id="reelTrack">000 111 222 333 444 555 666 777<br>123 234 345 456 567 678 789</div>
+            </div>
+
+            <div class="confetti" id="confetti"></div>
+            <div class="number" id="num">---</div>
+            <div class="message" id="msg">SPINしてね。</div>
+            <div id="secretLabel" class="secretText" style="display:none;">SECRET JACKPOT</div>
+
+            <div class="row">
+              <button id="spinBtn">SPIN（500G）</button>
+            </div>
+            <div class="note" id="spinHint"></div>
+          </div>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="panel">
+          <div class="statRow">
+            <div>
+              <div class="statLabel">残高</div>
+              <div class="statSmall" id="dailyInfo">—</div>
+            </div>
+            <div class="statValue" id="balance">0G</div>
+          </div>
+
+          <div class="statRow">
+            <div>
+              <div class="statLabel">当選数字</div>
+              <div class="statSmall" id="ownedCount">0 / 777</div>
+            </div>
+            <div class="statValue" id="lastHit">—</div>
+          </div>
+
+          <div>
+            <div class="sectionTitle">
+              <span>Inventory</span>
+              <span class="sectionHint">売却=数字G / 交換=景品へ</span>
+            </div>
+            <div class="chips" id="inventory"></div>
+          </div>
+
+          <div>
+            <div class="sectionTitle">
+              <span>Prizes</span>
+              <span class="sectionHint">交換で増える</span>
+            </div>
+            <div class="chips" id="prizes"></div>
+          </div>
+
+          <div>
+            <div class="sectionTitle">Log</div>
+            <div class="log" id="log"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ====== 設定 ======
+    const TZ = "Asia/Tokyo";
+    const COST_PER_SPIN = 500;
+    const DAILY_BONUS = 1000;
+
+    const RANGES = [
+      { name: "LOW",        min: 1,   max: 50,  badge: "LOW",        glow: "glow-low",    badgeAccent: "rgba(255,255,255,.10)" },
+      { name: "NORMAL",     min: 51,  max: 200, badge: "NORMAL",     glow: "glow-normal", badgeAccent: "rgba(96,165,250,.30)"  },
+      { name: "RARE",       min: 201, max: 400, badge: "RARE",       glow: "glow-rare",   badgeAccent: "rgba(167,139,250,.35)" },
+      { name: "SUPER RARE", min: 401, max: 650, badge: "SUPER RARE", glow: "glow-super",  badgeAccent: "rgba(52,211,153,.32)"  },
+      { name: "ULTRA",      min: 651, max: 776, badge: "ULTRA",      glow: "glow-ultra",  badgeAccent: "rgba(245,158,11,.35)"  },
+    ];
+
+    const SPIN = {
+      durationMs: 1900,
+      tickEveryMs: 40,
+      slowDownMs: 600,
+      finalHoldMs: 220,
+      fake777ChanceInLow: 1,
+    };
+
+    // 景品（ダミー）※ここだけ後で差し替えればOK
+    // 交換したら prizes にこの名前が追加される
+    const PRIZE_TABLE = {
+      LOW:        { name: "LOW景品" },
+      NORMAL:     { name: "NORMAL景品" },
+      RARE:       { name: "RARE景品" },
+      "SUPER RARE":{ name: "SUPER RARE景品" },
+      ULTRA:      { name: "ULTRA景品" },
+      SECRET:     { name: "SECRET景品" },
+    };
+
+    // ====== Storage ======
+    const LS_KEY = "slot777_v3_exchange";
+
+    function loadState(){
+      try{
+        const raw = localStorage.getItem(LS_KEY);
+        if (!raw) return {
+          balance: 0,
+          owned: [],
+          prizes: [],     // 交換で増える
+          history: [],
+          lastDailyClaimYMD: null,
+          lastHit: null,
+        };
+        const s = JSON.parse(raw);
+        return {
+          balance: Number(s.balance ?? 0),
+          owned: Array.isArray(s.owned) ? s.owned : [],
+          prizes: Array.isArray(s.prizes) ? s.prizes : [],
+          history: Array.isArray(s.history) ? s.history : [],
+          lastDailyClaimYMD: s.lastDailyClaimYMD ?? null,
+          lastHit: s.lastHit ?? null,
+        };
+      }catch{
+        return { balance: 0, owned: [], prizes: [], history: [], lastDailyClaimYMD: null, lastHit: null };
+      }
+    }
+    function saveState(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+
+    function getYMD_JST(date = new Date()){
+      const parts = new Intl.DateTimeFormat("ja-JP", {
+        timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit"
+      }).formatToParts(date);
+      const y = parts.find(p=>p.type==="year").value;
+      const m = parts.find(p=>p.type==="month").value;
+      const d = parts.find(p=>p.type==="day").value;
+      return `${y}-${m}-${d}`;
+    }
+    function getTimeHM_JST(date = new Date()){
+      return new Intl.DateTimeFormat("ja-JP", {
+        timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false
+      }).format(date);
+    }
+    function msUntilNextMidnightJST(now = new Date()){
+      const hm = getTimeHM_JST(now).split(":").map(Number);
+      const minutesNow = hm[0]*60 + hm[1];
+      const minutesLeft = 24*60 - minutesNow;
+      return minutesLeft * 60 * 1000;
+    }
+
+    // ====== DOM ======
+    const numEl = document.getElementById("num");
+    const msgEl = document.getElementById("msg");
+    const tierBadgeEl = document.getElementById("tierBadge");
+    const slotBox = document.getElementById("slotBox");
+    const card = document.getElementById("card");
+    const confettiEl = document.getElementById("confetti");
+    const secretLabel = document.getElementById("secretLabel");
+    const reel = document.getElementById("reel");
+    const reelTrack = document.getElementById("reelTrack");
+    const spinBtn = document.getElementById("spinBtn");
+    const balanceEl = document.getElementById("balance");
+    const inventoryEl = document.getElementById("inventory");
+    const prizesEl = document.getElementById("prizes");
+    const logEl = document.getElementById("log");
+    const dailyInfoEl = document.getElementById("dailyInfo");
+    const ownedCountEl = document.getElementById("ownedCount");
+    const lastHitEl = document.getElementById("lastHit");
+    const spinHintEl = document.getElementById("spinHint");
+    const costTextEl = document.getElementById("costText");
+
+    let spinning = false;
+    let state = loadState();
+
+    costTextEl.textContent = String(COST_PER_SPIN);
+    spinBtn.textContent = `SPIN（${COST_PER_SPIN}G）`;
+
+    // ====== Utils ======
+    function randInt(min, max){ return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+    function getTierByNumber(n){
+      if (n === 777) return { name: "SECRET", badge: "SECRET", glow: "secret", badgeAccent: "rgba(245,158,11,.45)" };
+      return RANGES.find(r => n >= r.min && n <= r.max)
+        ?? { name: "UNKNOWN", badge: "UNKNOWN", glow: "glow-normal", badgeAccent: "rgba(255,255,255,.12)" };
+    }
+    function rarityClass(tierName){
+      if (tierName === "SECRET") return "secret";
+      if (tierName === "ULTRA") return "ultra";
+      if (tierName === "SUPER RARE") return "super";
+      if (tierName === "RARE") return "rare";
+      return "";
+    }
+
+    // 景品は後から差し替え前提：今はレア度名で運用
+    function getPrizeRarity(n){
+      const tier = getTierByNumber(n).name;
+      if (tier === "SECRET") return "SECRET";
+      if (tier === "ULTRA") return "ULTRA";
+      if (tier === "SUPER RARE") return "SUPER RARE";
+      if (tier === "RARE") return "RARE";
+      if (tier === "NORMAL") return "NORMAL";
+      return "LOW";
+    }
+    function getPrizeNameByNumber(n){
+      const r = getPrizeRarity(n);
+      return PRIZE_TABLE[r]?.name ?? `${r}景品`;
+    }
+
+    function setTierUI(tier){
+      tierBadgeEl.textContent = tier.badge;
+      tierBadgeEl.style.borderColor = tier.badgeAccent || "rgba(255,255,255,.12)";
+      tierBadgeEl.style.boxShadow = `0 0 0 1px ${tier.badgeAccent || "rgba(255,255,255,.10)"}, 0 0 40px rgba(0,0,0,.0)`;
+
+      tierBadgeEl.classList.remove("pop");
+      void tierBadgeEl.offsetWidth;
+      tierBadgeEl.classList.add("pop");
+
+      slotBox.className = "slotBox";
+      secretLabel.style.display = "none";
+      card.classList.remove("flash");
+
+      if (tier.name === "SECRET") slotBox.classList.add("secret");
+      else slotBox.classList.add(tier.glow || "glow-normal");
+    }
+
+    function setMessage(text){ msgEl.innerHTML = text; }
+    function pulseFlash(){ card.classList.remove("flash"); void card.offsetWidth; card.classList.add("flash"); }
+    function shakeNumber(){ numEl.classList.remove("shake"); void numEl.offsetWidth; numEl.classList.add("shake"); }
+    function popSlot(){ slotBox.classList.remove("popBox"); void slotBox.offsetWidth; slotBox.classList.add("popBox"); }
+
+    function clearConfetti(){ confettiEl.innerHTML = ""; }
+    function spawnConfetti(count=22){
+      clearConfetti();
+      const w = confettiEl.clientWidth || 600;
+      for(let i=0;i<count;i++){
+        const s = document.createElement("span");
+        s.style.left = randInt(0, w) + "px";
+        s.style.animationDelay = (Math.random() * 0.15) + "s";
+        s.style.animationDuration = (1.0 + Math.random() * 0.7) + "s";
+        s.style.background = `hsl(${randInt(0,360)} 85% 65%)`;
+        confettiEl.appendChild(s);
+      }
+      setTimeout(clearConfetti, 1600);
+    }
+
+    function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+    function updateReelText(){
+      const a = String(randInt(0,777)).padStart(3,"0");
+      const b = String(randInt(0,777)).padStart(3,"0");
+      const c = String(randInt(0,777)).padStart(3,"0");
+      const d = String(randInt(0,777)).padStart(3,"0");
+      reelTrack.innerHTML =
+        `${a} ${b} ${c} ${d} ${String(randInt(0,777)).padStart(3,"0")}<br>` +
+        `${String(randInt(0,777)).padStart(3,"0")} ${String(randInt(0,777)).padStart(3,"0")} ${String(randInt(0,777)).padStart(3,"0")}`;
+    }
+
+    function escapeHtml(s){
+      return String(s)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    // ====== Audio ======
+    let audioCtx = null;
+    function ensureAudio(){
+      try{
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+      }catch(e){}
+    }
+    function beep(freq=440, ms=70, gain=0.03, type="sine"){
+      try{
+        ensureAudio();
+        const t0 = audioCtx.currentTime;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.frequency.setValueAtTime(freq, t0);
+        o.type = type;
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(gain, t0 + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + ms/1000);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(t0);
+        o.stop(t0 + ms/1000 + 0.02);
+      }catch(e){}
+    }
+
+    // 売却：シャリン（硬貨/金属っぽい）
+    function sellChime(){
+      try{
+        ensureAudio();
+        const t0 = audioCtx.currentTime;
+
+        // キラッ（複数重ね）
+        const freqs = [1760, 2350, 3136];
+        freqs.forEach((f, i) => {
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.type = "triangle";
+          o.frequency.setValueAtTime(f, t0 + i * 0.002);
+
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(0.06, t0 + 0.01);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18);
+
+          o.connect(g);
+          g.connect(audioCtx.destination);
+          o.start(t0);
+          o.stop(t0 + 0.2);
+        });
+
+        // 金属ノイズ（短い）
+        const bufferSize = Math.floor(audioCtx.sampleRate * 0.06);
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++){
+          const env = Math.exp(-i / (bufferSize / 6));
+          data[i] = (Math.random() * 2 - 1) * 0.35 * env;
+        }
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        const hp = audioCtx.createBiquadFilter();
+        hp.type = "highpass";
+        hp.frequency.setValueAtTime(1200, t0);
+
+        const ng = audioCtx.createGain();
+        ng.gain.setValueAtTime(0.0001, t0);
+        ng.gain.exponentialRampToValueAtTime(0.07, t0 + 0.01);
+        ng.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.12);
+
+        noise.connect(hp);
+        hp.connect(ng);
+        ng.connect(audioCtx.destination);
+        noise.start(t0);
+        noise.stop(t0 + 0.08);
+      }catch(e){}
+    }
+
+    // 交換：キラキラ（レア度で少し変える）
+    function exchangeChime(rarity){
+      // rarity: LOW/NORMAL/RARE/SUPER RARE/ULTRA/SECRET
+      const map = {
+        LOW:        { base: 880,  gain: 0.035, steps: [0, 4, 7], type:"sine" },
+        NORMAL:     { base: 990,  gain: 0.040, steps: [0, 4, 7, 12], type:"triangle" },
+        RARE:       { base: 1180, gain: 0.045, steps: [0, 7, 12, 19], type:"triangle" },
+        "SUPER RARE":{ base: 1320, gain: 0.052, steps: [0, 7, 12, 19, 24], type:"triangle" },
+        ULTRA:      { base: 1480, gain: 0.060, steps: [0, 12, 19, 24, 31], type:"square" },
+        SECRET:     { base: 660,  gain: 0.070, steps: [0, 7, 14, 21, 28], type:"sawtooth" },
+      };
+      const cfg = map[rarity] ?? map.NORMAL;
+
+      // 通常は“きらきら上がる”、SECRETだけは儀式っぽく低→高
+      const t0 = (audioCtx?.currentTime ?? 0);
+      cfg.steps.forEach((st, i) => {
+        const f = cfg.base * Math.pow(2, st/12);
+        const ms = (rarity === "SECRET") ? 95 : 70;
+        const g  = cfg.gain * (rarity === "SECRET" ? 1.0 : 0.85);
+        setTimeout(()=>beep(f, ms, g, cfg.type), i * (rarity === "SECRET" ? 85 : 55));
+      });
+
+      // SECRETは最後に“ドン”っぽい締め
+      if (rarity === "SECRET"){
+        setTimeout(()=>beep(110, 140, 0.08, "sine"), cfg.steps.length * 85 + 40);
+      }
+    }
+
+    // ====== Economy: Daily bonus ======
+    function applyDailyBonusIfNeeded(){
+      const today = getYMD_JST();
+      if (state.lastDailyClaimYMD !== today){
+        state.balance += DAILY_BONUS;
+        state.lastDailyClaimYMD = today;
+        pushLog("SYSTEM", `日次ボーナス +${DAILY_BONUS}G`, null);
+        saveState();
+      }
+    }
+    function updateDailyInfo(){
+      const ms = msUntilNextMidnightJST();
+      const hours = Math.floor(ms / 3600000);
+      const mins = Math.floor((ms % 3600000) / 60000);
+      dailyInfoEl.textContent = `次の更新まで：${hours}時間${String(mins).padStart(2,"0")}分（JST）`;
+    }
+
+    // ====== Log ======
+    function pushLog(type, text, number){
+      const entry = { ts: Date.now(), type, text, number: number ?? null };
+      state.history.unshift(entry);
+      if (state.history.length > 250) state.history.length = 250;
+    }
+    function formatTS(ts){
+      const d = new Date(ts);
+      const ymd = getYMD_JST(d);
+      const hm = getTimeHM_JST(d);
+      return `${ymd} ${hm}`;
+    }
+
+    // ====== Actions ======
+    function sellNumber(n){
+      const idx = state.owned.indexOf(n);
+      if (idx === -1){
+        pushLog("SELL", "売却失敗（未所持）", n);
+        saveState(); render();
+        return;
+      }
+
+      const ok = confirm(`#${String(n).padStart(3,"0")} を ${n}G で売却する？`);
+      if (!ok) return;
+
+      state.owned.splice(idx, 1);
+      state.balance += n;
+      sellChime();
+
+      pushLog("SELL", `売却 +${n}G`, n);
+      saveState();
+      render();
+    }
+
+    function exchangeNumber(n){
+      const idx = state.owned.indexOf(n);
+      if (idx === -1){
+        pushLog("EXCHANGE", "交換失敗（未所持）", n);
+        saveState(); render();
+        return;
+      }
+
+      const rarity = getPrizeRarity(n);
+      const prizeName = getPrizeNameByNumber(n);
+
+      const ok = confirm(`#${String(n).padStart(3,"0")} を「${prizeName}」と交換する？\n（売却ではなく数字が消費されます）`);
+      if (!ok) return;
+
+      // 数字を消費して景品へ
+      state.owned.splice(idx, 1);
+      state.prizes.unshift({
+        id: cryptoRandomId(),
+        ts: Date.now(),
+        number: n,
+        rarity,
+        name: prizeName,
+      });
+
+      // 音＆軽演出
+      pulseFlash();
+      popSlot();
+      if (rarity === "SECRET") spawnConfetti(60);
+      else if (rarity === "ULTRA") spawnConfetti(34);
+      else if (rarity === "SUPER RARE") spawnConfetti(22);
+      else if (rarity === "RARE") spawnConfetti(16);
+
+      ensureAudio();
+      exchangeChime(rarity);
+
+      setMessage(`交換成立。<br>景品：<b>${escapeHtml(prizeName)}</b><br><span style="color:rgba(156,163,175,.92)">（${escapeHtml(rarity)}）</span>`);
+      pushLog("EXCHANGE", `交換「${prizeName}」`, n);
+
+      saveState();
+      render();
+    }
+
+    function cryptoRandomId(){
+      try{
+        const a = new Uint8Array(8);
+        crypto.getRandomValues(a);
+        return Array.from(a).map(x=>x.toString(16).padStart(2,"0")).join("");
+      }catch{
+        return String(Math.random()).slice(2);
+      }
+    }
+
+    // ====== Render ======
+    function render(){
+      balanceEl.textContent = `${state.balance}G`;
+
+      const canSpin = state.balance >= COST_PER_SPIN && !spinning;
+      spinBtn.disabled = !canSpin;
+
+      if (state.balance < COST_PER_SPIN){
+        spinHintEl.textContent = `残高が足りない：SPINには ${COST_PER_SPIN}G 必要`;
+        spinHintEl.style.color = "rgba(251,113,133,.95)";
+      } else {
+        spinHintEl.textContent = `残高OK：SPINで ${COST_PER_SPIN}G 消費`;
+        spinHintEl.style.color = "rgba(156,163,175,.9)";
+      }
+
+      lastHitEl.textContent = state.lastHit ? String(state.lastHit).padStart(3,"0") : "—";
+
+      const ownedSet = new Set(state.owned);
+      ownedCountEl.textContent = `${ownedSet.size} / 777`;
+
+      // Inventory（昇順）
+      const sorted = Array.from(ownedSet).sort((a,b)=>a-b);
+      inventoryEl.innerHTML = "";
+      if (sorted.length === 0){
+        const empty = document.createElement("div");
+        empty.className = "statSmall";
+        empty.textContent = "まだ何も所持してない。";
+        inventoryEl.appendChild(empty);
+      } else {
+        const showMax = 150;
+        const view = sorted.slice(0, showMax);
+
+        for (const n of view){
+          const tier = getTierByNumber(n).name;
+
+          const chip = document.createElement("span");
+          chip.className = "chip " + rarityClass(tier);
+
+          const label = document.createElement("span");
+          label.className = "chipNum";
+          label.textContent = String(n).padStart(3,"0");
+
+          const sell = document.createElement("button");
+          sell.className = "pillBtn";
+          sell.type = "button";
+          sell.textContent = `売却 +${n}G`;
+          sell.disabled = spinning;
+
+          const ex = document.createElement("button");
+          ex.className = "pillBtn exchange";
+          ex.type = "button";
+          ex.textContent = "交換";
+          ex.disabled = spinning;
+
+          sell.addEventListener("click", (ev)=>{
+            ev.stopPropagation();
+            if (spinning) return;
+            sellNumber(n);
+          });
+
+          ex.addEventListener("click", (ev)=>{
+            ev.stopPropagation();
+            if (spinning) return;
+            exchangeNumber(n);
+          });
+
+          chip.appendChild(label);
+          chip.appendChild(sell);
+          chip.appendChild(ex);
+          inventoryEl.appendChild(chip);
+        }
+
+        if (sorted.length > showMax){
+          const more = document.createElement("span");
+          more.className = "chip";
+          more.textContent = `+${sorted.length - showMax}`;
+          inventoryEl.appendChild(more);
+        }
+      }
+
+      // Prizes
+      prizesEl.innerHTML = "";
+      if (!state.prizes || state.prizes.length === 0){
+        const empty = document.createElement("div");
+        empty.className = "statSmall";
+        empty.textContent = "まだ景品はない（交換するとここに溜まる）";
+        prizesEl.appendChild(empty);
+      } else {
+        const showMax = 60;
+        const view = state.prizes.slice(0, showMax);
+        for (const p of view){
+          const chip = document.createElement("span");
+          chip.className = "chip " + rarityClass(p.rarity);
+          chip.title = `${p.name} / #${String(p.number).padStart(3,"0")} / ${p.rarity}`;
+          chip.textContent = `${p.name}`;
+          prizesEl.appendChild(chip);
+        }
+        if (state.prizes.length > showMax){
+          const more = document.createElement("span");
+          more.className = "chip";
+          more.textContent = `+${state.prizes.length - showMax}`;
+          prizesEl.appendChild(more);
+        }
+      }
+
+      // Log
+      logEl.innerHTML = "";
+      if (state.history.length === 0){
+        const empty = document.createElement("div");
+        empty.className = "logItem";
+        empty.innerHTML = `<div class="logMain">ログはまだない</div><div class="logMeta">—</div>`;
+        logEl.appendChild(empty);
+      } else {
+        for (const e of state.history){
+          const div = document.createElement("div");
+          div.className = "logItem";
+          const numStr = (e.number == null) ? "" : ` <b>#${String(e.number).padStart(3,"0")}</b>`;
+          div.innerHTML = `<div class="logMain">${escapeHtml(e.type)}：${escapeHtml(e.text)}${numStr}</div>
+                           <div class="logMeta">${escapeHtml(formatTS(e.ts))}</div>`;
+          logEl.appendChild(div);
+        }
+      }
+
+      updateDailyInfo();
+    }
+
+    // ====== Spin ======
+    async function spin(){
+      if (spinning) return;
+
+      applyDailyBonusIfNeeded();
+      if (state.balance < COST_PER_SPIN){
+        setMessage(`残高不足…<br>SPINには <b>${COST_PER_SPIN}G</b> 必要`);
+        render();
+        return;
+      }
+
+      spinning = true;
+      render();
+      ensureAudio();
+
+      // コスト消費
+      state.balance -= COST_PER_SPIN;
+      pushLog("SPIN", `-${COST_PER_SPIN}G`, null);
+      saveState();
+      render();
+
+      secretLabel.style.display = "none";
+      clearConfetti();
+      setTierUI({name:"", badge:"SPINNING...", glow:"glow-normal", badgeAccent:"rgba(255,255,255,.12)"});
+      setMessage("回転中…");
+      reel.classList.add("spin");
+
+      const final = randInt(1, 777);
+
+      const start = performance.now();
+      const end = start + SPIN.durationMs;
+      let nextTick = start;
+
+      while(performance.now() < end){
+        const now = performance.now();
+        if (now >= nextTick){
+          const remain = end - now;
+          const isSlow = remain < SPIN.slowDownMs;
+          const isFinalHold = remain < SPIN.finalHoldMs;
+
+          const val = isSlow ? randInt(600,777) : randInt(1,777);
+          numEl.textContent = String(val).padStart(3,"0");
+          updateReelText();
+
+          beep(isFinalHold ? 740 : (isSlow ? 660 : 520), 35, isFinalHold ? 0.028 : 0.02, "sine");
+
+          const base = SPIN.tickEveryMs;
+          const t = isFinalHold ? base * 3.2 : (isSlow ? base * 1.9 : base);
+          nextTick = now + t;
+        }
+        await new Promise(r => requestAnimationFrame(r));
+      }
+
+      reel.classList.remove("spin");
+      numEl.textContent = String(final).padStart(3,"0");
+
+      const tier = getTierByNumber(final);
+      setTierUI(tier);
+
+      // 演出
+      if (final === 777) await playSecret777(final);
+      else if (final <= 50) await playLowButHypeEffect(final);
+      else if (final <= 200) await playNormalEffect(final);
+      else if (final <= 400) await playRareEffect(final);
+      else if (final <= 650) await playSuperRareEffect(final);
+      else await playUltraEffect(final);
+
+      // 所持追加（重複は所持しない）
+      const already = state.owned.includes(final);
+      if (!already) state.owned.push(final);
+      state.lastHit = final;
+
+      const rarity = getPrizeRarity(final);
+      pushLog("RESULT", `Hit ${rarity}${already ? "（重複）" : "（NEW）"}`, final);
+
+      saveState();
+      spinning = false;
+      render();
+    }
+
+    // ====== Effects ======
+    function prizeLine(n){
+      const rarity = getPrizeRarity(n);
+      return `レア度：<b>${escapeHtml(rarity)}</b>`;
+    }
+
+    async function playLowButHypeEffect(n){
+      pulseFlash();
+      shakeNumber();
+
+      setMessage("……来る。<br><span style='color:rgba(156,163,175,.95)'>覚醒中</span>");
+      await sleep(140);
+
+      if (SPIN.fake777ChanceInLow){
+        numEl.textContent = "777";
+        beep(880, 120, 0.055, "sine");
+        popSlot();
+        await sleep(220);
+        numEl.textContent = String(n).padStart(3,"0");
+        beep(330, 90, 0.03, "sine");
+      }
+
+      spawnConfetti(12);
+      setMessage(`「惜しい！！…でも“流れ”は来てる。」<br>${prizeLine(n)}`);
+    }
+
+    async function playNormalEffect(n){
+      beep(520, 90, 0.03, "sine");
+      setMessage(`OK。<br>${prizeLine(n)}`);
+    }
+
+    async function playRareEffect(n){
+      pulseFlash();
+      beep(660, 110, 0.04, "triangle");
+      spawnConfetti(18);
+      setMessage(`RARE感…きた。<br>${prizeLine(n)}`);
+    }
+
+    async function playSuperRareEffect(n){
+      pulseFlash();
+      shakeNumber();
+      beep(740, 120, 0.05, "triangle");
+      spawnConfetti(26);
+      popSlot();
+      setMessage(`いいね！SUPER RARE。<br>${prizeLine(n)}`);
+    }
+
+    async function playUltraEffect(n){
+      setMessage("……");
+      await sleep(180);
+      pulseFlash();
+      shakeNumber();
+      popSlot();
+      beep(980, 160, 0.065, "square");
+      spawnConfetti(38);
+      setMessage(`<b>ULTRA</b>！！！<br>${prizeLine(n)}`);
+    }
+
+    async function playSecret777(){
+      setMessage("ERROR…?");
+      beep(220, 120, 0.045, "sine");
+      await sleep(260);
+
+      pulseFlash();
+      popSlot();
+      slotBox.classList.add("secret");
+      secretLabel.style.display = "block";
+
+      beep(440, 120, 0.055, "sine");
+      await sleep(140);
+      beep(660, 120, 0.055, "sine");
+      await sleep(140);
+      beep(880, 180, 0.07, "sine");
+
+      spawnConfetti(64);
+      setMessage(`<b>SECRET JACKPOT</b><br>${prizeLine(777)}`);
+    }
+
+    // ====== Init ======
+    function init(){
+      if (typeof state.balance !== "number") state.balance = 0;
+      if (!Array.isArray(state.prizes)) state.prizes = [];
+
+      applyDailyBonusIfNeeded();
+      saveState();
+      render();
+
+      // 起動中に00:00跨ぎを拾う（1分ごと）
+      setInterval(() => {
+        const before = state.lastDailyClaimYMD;
+        applyDailyBonusIfNeeded();
+        if (state.lastDailyClaimYMD !== before) saveState();
+        render();
+      }, 60_000);
+    }
+
+    // ====== Events ======
+    spinBtn.addEventListener("click", spin);
+    window.addEventListener("pointerdown", ensureAudio, { once:true });
+
+    init();
+  </script>
+</body>
+</html>
