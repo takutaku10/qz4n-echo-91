@@ -353,6 +353,122 @@
       margin-top: 6px;
       text-align:center;
     }
+
+    /* =========================================================
+       G GET CHANCE（演出強化版）
+    ========================================================= */
+    .chance{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background: radial-gradient(900px 360px at 50% 0%, rgba(96,165,250,.18), transparent 60%),
+                  rgba(0,0,0,.48);
+      opacity:0;
+      pointer-events:none;
+      transform: translateY(10px) scale(.99);
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .chance.show{
+      opacity:1;
+      pointer-events:auto;
+      transform: translateY(0) scale(1);
+    }
+    .chanceCard{
+      width:min(440px, 100%);
+      border-radius: 18px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(17,24,39,.80);
+      box-shadow: 0 30px 90px rgba(0,0,0,.45);
+      padding:18px 16px 16px;
+      text-align:center;
+      position:relative;
+      overflow:hidden;
+    }
+    .chanceCard::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background: radial-gradient(520px 180px at 50% 10%, rgba(255,255,255,.16), transparent 60%),
+                  linear-gradient(180deg, rgba(96,165,250,.18), transparent);
+      pointer-events:none;
+      mix-blend-mode: screen;
+      animation: chanceGlow 1.2s ease infinite alternate;
+      opacity:.75;
+    }
+    @keyframes chanceGlow{
+      from{ transform: translateY(-2px); opacity:.55; }
+      to{ transform: translateY(2px); opacity:.90; }
+    }
+    .chanceTitle{
+      font-size:12px;
+      letter-spacing:.22em;
+      text-transform:uppercase;
+      color: rgba(229,231,235,.92);
+    }
+    .chanceAmount{
+      margin-top:10px;
+      font-size:54px;
+      font-weight:900;
+      letter-spacing:.02em;
+      text-shadow: 0 12px 40px rgba(0,0,0,.45);
+    }
+    .chanceSub{
+      margin-top:6px;
+      font-size:12px;
+      color: rgba(156,163,175,.92);
+      line-height:1.4;
+      min-height: 1.2em;
+    }
+    .chanceRow{
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      margin-top:14px;
+      flex-wrap:wrap;
+    }
+    .chanceBtn{
+      min-width: 160px;
+      border-radius: 14px;
+      padding:12px 14px;
+      font-weight:900;
+      color: var(--text);
+      background: rgba(52,211,153,.14);
+      border: 1px solid rgba(52,211,153,.28);
+    }
+    .chanceBtn.ghost{
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+    }
+    .chanceMini{
+      margin-top:10px;
+      font-size:11px;
+      color: rgba(156,163,175,.88);
+      letter-spacing:.06em;
+    }
+
+    /* 追加：Gロール中の揺れ＆確定フラッシュ */
+    .chanceRolling .chanceAmount{
+      animation: amountJitter .12s linear infinite;
+      filter: brightness(1.05);
+    }
+    @keyframes amountJitter{
+      0%{ transform: translateY(0) }
+      25%{ transform: translateY(-1px) }
+      50%{ transform: translateY(1px) }
+      75%{ transform: translateY(-1px) }
+      100%{ transform: translateY(0) }
+    }
+    .moneyPop{
+      animation: moneyPop .22s ease;
+    }
+    @keyframes moneyPop{
+      0%{ transform: scale(1); }
+      55%{ transform: scale(1.04); }
+      100%{ transform: scale(1); }
+    }
   </style>
 </head>
 
@@ -378,6 +494,21 @@
             </div>
 
             <div class="confetti" id="confetti"></div>
+
+            <!-- G GET CHANCE overlay -->
+            <div class="chance" id="chance" aria-hidden="true">
+              <div class="chanceCard" id="chanceCard">
+                <div class="chanceTitle">G GET CHANCE</div>
+                <div class="chanceAmount" id="chanceAmount">+0G</div>
+                <div class="chanceSub" id="chanceSub">GET!で確定</div>
+                <div class="chanceRow">
+                  <button id="chanceClaimBtn" class="chanceBtn" disabled>GET!</button>
+                  <button id="chanceBackBtn" class="chanceBtn ghost">戻る</button>
+                </div>
+                <div class="chanceMini">（獲得幅：1000G〜7777G）</div>
+              </div>
+            </div>
+
             <div class="number" id="num">---</div>
             <div class="message" id="msg">SPINしてね。</div>
             <div id="secretLabel" class="secretText" style="display:none;">SECRET JACKPOT</div>
@@ -454,8 +585,21 @@
       fake777ChanceInLow: 1,
     };
 
+    // ★ Gゲットチャンス設定（演出強化）
+    const G_CHANCE = {
+      triggerPercent: 12,
+      min: 1000,
+      max: 7777,
+      curve: 1.25,
+
+      // 追加：ロール演出
+      rollTotalMs: 1500,      // 回してる時間
+      rollTickMs: 38,         // 表示更新間隔
+      settleMs: 260,          // “止まる”余韻
+      allowBackDuringRoll: false,
+    };
+
     // 景品（ダミー）※ここだけ後で差し替えればOK
-    // 交換したら prizes にこの名前が追加される
     const PRIZE_TABLE = {
       LOW:        { name: "LOW景品" },
       NORMAL:     { name: "NORMAL景品" },
@@ -474,7 +618,7 @@
         if (!raw) return {
           balance: 0,
           owned: [],
-          prizes: [],     // 交換で増える
+          prizes: [],
           history: [],
           lastDailyClaimYMD: null,
           lastHit: null,
@@ -536,6 +680,14 @@
     const spinHintEl = document.getElementById("spinHint");
     const costTextEl = document.getElementById("costText");
 
+    // G GET CHANCE DOM
+    const chanceEl = document.getElementById("chance");
+    const chanceCardEl = document.getElementById("chanceCard");
+    const chanceAmountEl = document.getElementById("chanceAmount");
+    const chanceSubEl = document.getElementById("chanceSub");
+    const chanceClaimBtn = document.getElementById("chanceClaimBtn");
+    const chanceBackBtn = document.getElementById("chanceBackBtn");
+
     let spinning = false;
     let state = loadState();
 
@@ -558,7 +710,6 @@
       return "";
     }
 
-    // 景品は後から差し替え前提：今はレア度名で運用
     function getPrizeRarity(n){
       const tier = getTierByNumber(n).name;
       if (tier === "SECRET") return "SECRET";
@@ -631,7 +782,7 @@
         .replaceAll("'","&#039;");
     }
 
-    // ====== Audio ======
+    // ====== Audio（既存は触らない） ======
     let audioCtx = null;
     function ensureAudio(){
       try{
@@ -656,13 +807,11 @@
       }catch(e){}
     }
 
-    // 売却：シャリン（硬貨/金属っぽい）
     function sellChime(){
       try{
         ensureAudio();
         const t0 = audioCtx.currentTime;
 
-        // キラッ（複数重ね）
         const freqs = [1760, 2350, 3136];
         freqs.forEach((f, i) => {
           const o = audioCtx.createOscillator();
@@ -680,7 +829,6 @@
           o.stop(t0 + 0.2);
         });
 
-        // 金属ノイズ（短い）
         const bufferSize = Math.floor(audioCtx.sampleRate * 0.06);
         const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
         const data = buffer.getChannelData(0);
@@ -708,9 +856,7 @@
       }catch(e){}
     }
 
-    // 交換：キラキラ（レア度で少し変える）
     function exchangeChime(rarity){
-      // rarity: LOW/NORMAL/RARE/SUPER RARE/ULTRA/SECRET
       const map = {
         LOW:        { base: 880,  gain: 0.035, steps: [0, 4, 7], type:"sine" },
         NORMAL:     { base: 990,  gain: 0.040, steps: [0, 4, 7, 12], type:"triangle" },
@@ -721,7 +867,6 @@
       };
       const cfg = map[rarity] ?? map.NORMAL;
 
-      // 通常は“きらきら上がる”、SECRETだけは儀式っぽく低→高
       const t0 = (audioCtx?.currentTime ?? 0);
       cfg.steps.forEach((st, i) => {
         const f = cfg.base * Math.pow(2, st/12);
@@ -730,10 +875,113 @@
         setTimeout(()=>beep(f, ms, g, cfg.type), i * (rarity === "SECRET" ? 85 : 55));
       });
 
-      // SECRETは最後に“ドン”っぽい締め
       if (rarity === "SECRET"){
         setTimeout(()=>beep(110, 140, 0.08, "sine"), cfg.steps.length * 85 + 40);
       }
+    }
+
+    /* =========================================================
+       追加：G CHANCE専用（爽快SE＆ロール演出）
+       既存音は触らず、ここだけ追加
+    ========================================================= */
+    function chanceWhoosh(){
+      try{
+        ensureAudio();
+        const t0 = audioCtx.currentTime;
+
+        const bufferSize = Math.floor(audioCtx.sampleRate * 0.12);
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for(let i=0;i<bufferSize;i++){
+          const env = Math.exp(-i / (bufferSize / 3));
+          data[i] = (Math.random()*2-1) * 0.25 * env;
+        }
+        const src = audioCtx.createBufferSource();
+        src.buffer = buffer;
+
+        const bp = audioCtx.createBiquadFilter();
+        bp.type = "bandpass";
+        bp.frequency.setValueAtTime(900, t0);
+        bp.Q.setValueAtTime(0.9, t0);
+
+        const g = audioCtx.createGain();
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(0.10, t0 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.11);
+
+        src.connect(bp);
+        bp.connect(g);
+        g.connect(audioCtx.destination);
+        src.start(t0);
+        src.stop(t0 + 0.13);
+      }catch(e){}
+    }
+
+    // ★ “コインジャラジャラ”っぽい：短い金属成分 + ノイズ + ピッチランダム
+    function coinJingleBurst(strength=1.0){
+      try{
+        ensureAudio();
+        const t0 = audioCtx.currentTime;
+
+        // 金属っぽい倍音（複数オシレータ）
+        const tones = [1560, 1970, 2480, 3120];
+        tones.forEach((f, i)=>{
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.type = "triangle";
+          o.frequency.setValueAtTime(f * (0.96 + Math.random()*0.10), t0 + i*0.002);
+          const peak = 0.028 * strength;
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(peak, t0 + 0.008);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
+
+          o.connect(g); g.connect(audioCtx.destination);
+          o.start(t0);
+          o.stop(t0 + 0.18);
+        });
+
+        // ノイズ（硬貨の擦れ）
+        const bufferSize = Math.floor(audioCtx.sampleRate * 0.10);
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for(let i=0;i<bufferSize;i++){
+          const env = Math.exp(-i / (bufferSize / 4));
+          data[i] = (Math.random()*2-1) * 0.22 * env * strength;
+        }
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        const hp = audioCtx.createBiquadFilter();
+        hp.type = "highpass";
+        hp.frequency.setValueAtTime(1200, t0);
+
+        const ng = audioCtx.createGain();
+        ng.gain.setValueAtTime(0.0001, t0);
+        ng.gain.exponentialRampToValueAtTime(0.08 * strength, t0 + 0.01);
+        ng.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.10);
+
+        noise.connect(hp);
+        hp.connect(ng);
+        ng.connect(audioCtx.destination);
+        noise.start(t0);
+        noise.stop(t0 + 0.11);
+      }catch(e){}
+    }
+
+    // ★ 連続ジャラ：GET!後に爽快に入る
+    function coinRain(amount){
+      const big = amount >= 6000;
+      const bursts = big ? 7 : 5;
+      const strength = big ? 1.25 : 1.0;
+
+      for(let i=0;i<bursts;i++){
+        setTimeout(()=>coinJingleBurst(strength), i * (big ? 70 : 85));
+      }
+
+      // “締め”の低音コイン（ズン）
+      setTimeout(()=>beep(big ? 180 : 220, 120, big ? 0.07 : 0.055, "sine"),
+        bursts * (big ? 70 : 85) + 20
+      );
     }
 
     // ====== Economy: Daily bonus ======
@@ -764,6 +1012,113 @@
       const ymd = getYMD_JST(d);
       const hm = getTimeHM_JST(d);
       return `${ymd} ${hm}`;
+    }
+
+    // ====== G GET CHANCE ロール＆画面制御 ======
+    function rollPercent(p){ return Math.random() * 100 < p; }
+
+    function rollChanceG(){
+      const u = Math.pow(Math.random(), G_CHANCE.curve);
+      const val = Math.floor(G_CHANCE.min + (G_CHANCE.max - G_CHANCE.min) * (1 - u));
+      return Math.max(G_CHANCE.min, Math.min(G_CHANCE.max, val));
+    }
+
+    function openChance(){
+      chanceEl.classList.add("show");
+      chanceEl.setAttribute("aria-hidden","false");
+      chanceWhoosh();
+    }
+    function closeChance(){
+      chanceEl.classList.remove("show");
+      chanceEl.setAttribute("aria-hidden","true");
+      chanceWhoosh();
+    }
+
+    // ★追加：額が決まるまで“回す”演出（止まり方も作る）
+    async function rollChanceAmount(finalAmount){
+      const start = performance.now();
+      const end = start + G_CHANCE.rollTotalMs;
+
+      chanceClaimBtn.disabled = true;
+      if (!G_CHANCE.allowBackDuringRoll) chanceBackBtn.disabled = true;
+
+      chanceCardEl.classList.add("chanceRolling");
+      chanceSubEl.textContent = "決定中…";
+      let nextTick = start;
+
+      while(performance.now() < end){
+        const now = performance.now();
+        if (now >= nextTick){
+          // “それっぽい揺れ”：最終値付近も混ぜる（期待感）
+          const near = Math.random() < 0.22;
+          const val = near
+            ? randInt(Math.max(G_CHANCE.min, finalAmount - 1400), Math.min(G_CHANCE.max, finalAmount + 1400))
+            : randInt(G_CHANCE.min, G_CHANCE.max);
+
+          chanceAmountEl.textContent = `+${val}G`;
+
+          // 軽いチリン（既存beep使用OK：追加音として）
+          beep(near ? 880 : 740, 22, 0.018, "sine");
+          nextTick = now + G_CHANCE.rollTickMs;
+        }
+        await new Promise(r => requestAnimationFrame(r));
+      }
+
+      // 止める（確定の“間”）
+      chanceAmountEl.textContent = `+${finalAmount}G`;
+      beep(990, 60, 0.035, "triangle");
+      await sleep(G_CHANCE.settleMs);
+
+      chanceCardEl.classList.remove("chanceRolling");
+      chanceSubEl.textContent = "GET!で確定（残高に加算）";
+      chanceClaimBtn.disabled = false;
+      chanceBackBtn.disabled = false;
+
+      // 少し“パキッ”と見せる
+      chanceAmountEl.classList.remove("moneyPop");
+      void chanceAmountEl.offsetWidth;
+      chanceAmountEl.classList.add("moneyPop");
+    }
+
+    async function runGoldChance(){
+      openChance();
+
+      // まず“回して決める”
+      const amount = rollChanceG();
+      chanceAmountEl.textContent = "+???G";
+      await sleep(110);
+      await rollChanceAmount(amount);
+
+      // ここからボタン待ち
+      await new Promise(resolve=>{
+        const onClaim = ()=>{
+          state.balance += amount;
+          pushLog("G-CHANCE", `+${amount}G`, null);
+          saveState();
+
+          // 爽快：コインジャラ → 画面ちょいフラッシュ
+          coinRain(amount);
+          pulseFlash();
+
+          setMessage(`Gゲットチャンス！<br><b>+${amount}G</b>`);
+          closeChance();
+          render();
+          resolve();
+        };
+
+        const onBack = ()=>{
+          pushLog("G-CHANCE", "キャンセル", null);
+          saveState();
+
+          setMessage("チャンスを見送った。");
+          closeChance();
+          render();
+          resolve();
+        };
+
+        chanceClaimBtn.addEventListener("click", onClaim, { once:true });
+        chanceBackBtn.addEventListener("click", onBack, { once:true });
+      });
     }
 
     // ====== Actions ======
@@ -801,7 +1156,6 @@
       const ok = confirm(`#${String(n).padStart(3,"0")} を「${prizeName}」と交換する？\n（売却ではなく数字が消費されます）`);
       if (!ok) return;
 
-      // 数字を消費して景品へ
       state.owned.splice(idx, 1);
       state.prizes.unshift({
         id: cryptoRandomId(),
@@ -811,7 +1165,6 @@
         name: prizeName,
       });
 
-      // 音＆軽演出
       pulseFlash();
       popSlot();
       if (rarity === "SECRET") spawnConfetti(60);
@@ -859,7 +1212,6 @@
       const ownedSet = new Set(state.owned);
       ownedCountEl.textContent = `${ownedSet.size} / 777`;
 
-      // Inventory（昇順）
       const sorted = Array.from(ownedSet).sort((a,b)=>a-b);
       inventoryEl.innerHTML = "";
       if (sorted.length === 0){
@@ -919,7 +1271,6 @@
         }
       }
 
-      // Prizes
       prizesEl.innerHTML = "";
       if (!state.prizes || state.prizes.length === 0){
         const empty = document.createElement("div");
@@ -944,7 +1295,6 @@
         }
       }
 
-      // Log
       logEl.innerHTML = "";
       if (state.history.length === 0){
         const empty = document.createElement("div");
@@ -986,6 +1336,18 @@
       saveState();
       render();
 
+      // ★ ランダムでGゲットチャンスへ
+      if (rollPercent(G_CHANCE.triggerPercent)){
+        setTierUI({name:"", badge:"CHANCE!", glow:"glow-normal", badgeAccent:"rgba(52,211,153,.25)"});
+        setMessage("……Gゲットチャンス発生！");
+        await sleep(160);
+        await runGoldChance();
+        spinning = false;
+        render();
+        return;
+      }
+
+      // 従来の数字スロット
       secretLabel.style.display = "none";
       clearConfetti();
       setTierUI({name:"", badge:"SPINNING...", glow:"glow-normal", badgeAccent:"rgba(255,255,255,.12)"});
@@ -1024,7 +1386,6 @@
       const tier = getTierByNumber(final);
       setTierUI(tier);
 
-      // 演出
       if (final === 777) await playSecret777(final);
       else if (final <= 50) await playLowButHypeEffect(final);
       else if (final <= 200) await playNormalEffect(final);
@@ -1032,7 +1393,6 @@
       else if (final <= 650) await playSuperRareEffect(final);
       else await playUltraEffect(final);
 
-      // 所持追加（重複は所持しない）
       const already = state.owned.includes(final);
       if (!already) state.owned.push(final);
       state.lastHit = final;
@@ -1132,7 +1492,6 @@
       saveState();
       render();
 
-      // 起動中に00:00跨ぎを拾う（1分ごと）
       setInterval(() => {
         const before = state.lastDailyClaimYMD;
         applyDailyBonusIfNeeded();
@@ -1149,3 +1508,4 @@
   </script>
 </body>
 </html>
+
